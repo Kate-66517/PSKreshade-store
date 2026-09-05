@@ -40,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         status: parsed.data.action === "APPROVE" ? "APPROVED" : "REJECTED",
         reviewedById: adminId,
         reviewedAt: new Date(),
-      },
+      } as any,
     });
 
     await tx.auditLog.create({
