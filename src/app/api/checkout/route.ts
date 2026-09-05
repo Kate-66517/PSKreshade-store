@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const subtotal = products.reduce((sum, p) => sum + p.price, 0);
+  const subtotal = products.reduce((sum, p) => sum + Number(p.price), 0);
 
   // 3. Recompute discount from a real Coupon row, never from client input.
   let discount = 0;
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     if (!coupon || (coupon.expiresAt && coupon.expiresAt < new Date())) {
       return NextResponse.json({ error: "INVALID_COUPON" }, { status: 400 });
     }
-    if (subtotal < coupon.minPurchase) {
+    if (subtotal < Number(coupon.minPurchase)) {
       return NextResponse.json({ error: "COUPON_MIN_PURCHASE_NOT_MET" }, { status: 400 });
     }
     const usageCount = await prisma.couponUsage.count({ where: { couponId: coupon.id } });
@@ -67,9 +67,10 @@ export async function POST(req: NextRequest) {
     if (coupon.perUserLimit != null && perUserCount >= coupon.perUserLimit) {
       return NextResponse.json({ error: "COUPON_ALREADY_USED" }, { status: 400 });
     }
+    const couponValue = Number(coupon.value);
     discount =
-      coupon.type === "PERCENTAGE" ? Math.floor((subtotal * coupon.value) / 100) : coupon.value;
-    if (coupon.maxDiscount != null) discount = Math.min(discount, coupon.maxDiscount);
+      coupon.type === "PERCENTAGE" ? Math.floor((subtotal * couponValue) / 100) : couponValue;
+    if (coupon.maxDiscount != null) discount = Math.min(discount, Number(coupon.maxDiscount));
   }
 
   const total = Math.max(subtotal - discount, 0);
