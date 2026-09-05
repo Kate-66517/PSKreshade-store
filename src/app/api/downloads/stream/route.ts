@@ -18,12 +18,12 @@ export async function GET(req: NextRequest) {
   const payload = verifyDownloadToken(token);
   if (!payload) return NextResponse.json({ error: "INVALID_OR_EXPIRED_TOKEN" }, { status: 403 });
 
-  const license = await prisma.license.findFirst({
+  const license = await (prisma as any).license.findFirst({
     where: { userId: payload.userId, productId: payload.productId, status: "ACTIVE" },
   });
   if (!license) return NextResponse.json({ error: "LICENSE_NOT_ACTIVE" }, { status: 403 });
 
-  const file = await prisma.productFile.findUnique({ where: { id: payload.fileId } });
+  const file = await (prisma as any).productFile.findUnique({ where: { id: payload.fileId } });
   if (!file) return NextResponse.json({ error: "FILE_NOT_FOUND" }, { status: 404 });
 
   // Redirect to a short-lived, provider-signed URL for the actual bytes
