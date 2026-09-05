@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (parsed.data.action === "APPROVE") {
       await applyWalletDelta(tx, {
         userId: topUp.userId,
-        delta: topUp.amount,
+        delta: Number(topUp.amount),
         type: "TOPUP",
         referenceId: topUp.id,
         reason: "Top-up approved by admin",
@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       data: {
         userId: adminId,
         action: `TOPUP_${parsed.data.action}`,
-        details: JSON.stringify({ topUpId: topUp.id, amount: topUp.amount, reason: parsed.data.reason }),
+        details: JSON.stringify({ topUpId: topUp.id, amount: Number(topUp.amount), reason: parsed.data.reason }),
       },
     });
 
