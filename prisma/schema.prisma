@@ -1,0 +1,278 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ProductStatus {
+  AVAILABLE
+  UNAVAILABLE
+  HIDDEN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum TopUpStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TransactionType {
+  TOPUP
+  PURCHASE
+  REFUND
+  ADJUSTMENT
+}
+
+enum LicenseStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum PerfLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id               String              @id @default(uuid())
+  username         String              @unique
+  email            String              @unique
+  passwordHash     String
+  displayName      String?
+  avatar           String?
+  role             Role                @default(USER)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  
+  wallet           Wallet?
+  orders           Order[]
+  licenses         License[]
+  userProducts     UserProduct[]
+  downloads        DownloadLog[]
+  reviews          Review[]
+  topUps           TopUp[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+}
+
+model Wallet {
+  id           String              @id @default(uuid())
+  userId       String              @unique
+  balance      Decimal             @default(0.00) @db.Decimal(12, 2)
+  updatedAt    DateTime            @updatedAt
+  
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id            String          @id @default(uuid())
+  walletId      String
+  type          TransactionType
+  amount        Decimal         @db.Decimal(12, 2)
+  balanceBefore Decimal         @db.Decimal(12, 2)
+  balanceAfter  Decimal         @db.Decimal(12, 2)
+  referenceId   String?
+  description   String?
+  createdAt     DateTime        @default(now())
+  
+  wallet        Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  products    Product[]
+}
+
+model Product {
+  id               String            @id @default(uuid())
+  name             String
+  slug             String            @unique
+  shortDescription String
+  description      String            @db.Text
+  price            Decimal           @db.Decimal(10, 2)
+  originalPrice    Decimal?          @db.Decimal(10, 2)
+  discountPercent  Int               @default(0)
+  status           ProductStatus     @default(AVAILABLE)
+  isFeatured       Boolean           @default(false)
+  isBundle         Boolean           @default(false)
+  isFree           Boolean           @default(false)
+  
+  // ReShade Technical Specifications
+  reqReshadeVer    String?
+  reqGame          String?           @default("FiveM / GTA V")
+  recGpu           String?
+  perfLevel        PerfLevel         @default(MEDIUM)
+  features         String[]          // List of key features
+  
+  // Relations
+  categoryId       String
+  category         Category          @relation(fields: [categoryId], references: [id])
+  versions         ProductVersion[]
+  orderItems       OrderItem[]
+  userProducts     UserProduct[]
+  licenses         License[]
+  reviews          Review[]
+  downloads        DownloadLog[]
+  
+  // Bundle Relationships
+  bundleItems      BundleItem[]      @relation("BundleToItems")
+  containedIn      BundleItem[]      @relation("ItemToBundle")
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model BundleItem {
+  id         String   @id @default(uuid())
+  bundleId   String
+  productId  String
+  
+  bundle     Product  @relation("BundleToItems", fields: [bundleId], references: [id], onDelete: Cascade)
+  product    Product  @relation("ItemToBundle", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, productId])
+}
+
+model ProductVersion {
+  id          String   @id @default(uuid())
+  productId   String
+  version     String   // e.g. "v2.0.0"
+  changelog   String   @db.Text
+  filePath    String   // S3 Private Object Key
+  isCurrent   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model UserProduct {
+  id          String   @id @default(uuid())
+  userId      String
+  productId   String
+  grantedAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model License {
+  id         String        @id @default(uuid())
+  licenseKey String        @unique // Format: PSK-XXXX-XXXX-XXXX
+  userId     String
+  productId  String
+  orderId    String
+  status     LicenseStatus @default(ACTIVE)
+  createdAt  DateTime      @default(now())
+
+  user       User          @relation(fields: [userId], references: [id])
+  product    Product       @relation(fields: [productId], references: [id])
+  order      Order         @relation(fields: [orderId], references: [id])
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  userId        String
+  totalAmount   Decimal     @db.Decimal(10, 2)
+  status        OrderStatus @default(PENDING)
+  paymentMethod String      @default("WALLET")
+  couponCode    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  user          User        @relation(fields: [userId], references: [id])
+  items         OrderItem[]
+  licenses      License[]
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  productId String
+  price     Decimal  @db.Decimal(10, 2)
+
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model TopUp {
+  id          String      @id @default(uuid())
+  userId      String
+  amount      Decimal     @db.Decimal(10, 2)
+  slipUrl     String?
+  status      TopUpStatus @default(PENDING)
+  rejectedReason String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id])
+}
+
+model DownloadLog {
+  id          String   @id @default(uuid())
+  userId      String
+  productId   String
+  ipAddress   String
+  userAgent   String
+  downloadedAt DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+  product     Product  @relation(fields: [productId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  rating    Int
+  comment   String   @db.Text
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  details   String   @db.Text
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id])
+}
