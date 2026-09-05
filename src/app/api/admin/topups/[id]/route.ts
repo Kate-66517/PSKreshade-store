@@ -10,7 +10,7 @@ const ActionSchema = z.object({ action: z.enum(["APPROVE", "REJECT"]), reason: z
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   try {
-    assertAdmin(session);
+    assertAdmin(session as any);
   } catch {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
@@ -20,9 +20,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!parsed.success) return NextResponse.json({ error: "INVALID_INPUT" }, { status: 400 });
 
   const result = await prisma.$transaction(async (tx) => {
-    // Row lock via findUnique + conditional update prevents double-approval:
-    // only a PENDING top-up can transition, and the update is conditioned on
-    // that status inside the same transaction.
     const topUp = await tx.topUp.findUnique({ where: { id: params.id } });
     if (!topUp) throw new Error("NOT_FOUND");
     if (topUp.status !== "PENDING") throw new Error("ALREADY_REVIEWED");
@@ -48,9 +45,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     await tx.auditLog.create({
       data: {
-        actorId: adminId,
+        userId: adminId,
         action: `TOPUP_${parsed.data.action}`,
-        metadata: { topUpId: topUp.id, amount: topUp.amount, reason: parsed.data.reason },
+        details: JSON.stringify({ topUpId: topUp.id, amount: topUp.amount, reason: parsed.data.reason }),
       },
     });
 
