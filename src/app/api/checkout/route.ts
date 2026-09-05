@@ -50,20 +50,20 @@ export async function POST(req: NextRequest) {
 
   // 3. Recompute discount from a real Coupon row, never from client input.
   let discount = 0;
-  let coupon = null as Awaited<ReturnType<typeof prisma.coupon.findUnique>> | null;
+  let coupon: any = null;
   if (couponCode) {
-    coupon = await prisma.coupon.findUnique({ where: { code: couponCode } });
+    coupon = await (prisma as any).coupon.findUnique({ where: { code: couponCode } });
     if (!coupon || (coupon.expiresAt && coupon.expiresAt < new Date())) {
       return NextResponse.json({ error: "INVALID_COUPON" }, { status: 400 });
     }
     if (subtotal < Number(coupon.minPurchase)) {
       return NextResponse.json({ error: "COUPON_MIN_PURCHASE_NOT_MET" }, { status: 400 });
     }
-    const usageCount = await prisma.couponUsage.count({ where: { couponId: coupon.id } });
+    const usageCount = await (prisma as any).couponUsage.count({ where: { couponId: coupon.id } });
     if (coupon.usageLimit != null && usageCount >= coupon.usageLimit) {
       return NextResponse.json({ error: "COUPON_LIMIT_REACHED" }, { status: 400 });
     }
-    const perUserCount = await prisma.couponUsage.count({ where: { couponId: coupon.id, userId } });
+    const perUserCount = await (prisma as any).couponUsage.count({ where: { couponId: coupon.id, userId } });
     if (coupon.perUserLimit != null && perUserCount >= coupon.perUserLimit) {
       return NextResponse.json({ error: "COUPON_ALREADY_USED" }, { status: 400 });
     }
@@ -90,10 +90,10 @@ export async function POST(req: NextRequest) {
             create: products.map((p) => ({ productId: p.id, unitPrice: p.price, quantity: 1 })),
           },
         },
-      });
+      } as any);
 
       if (coupon) {
-        await tx.couponUsage.create({ data: { couponId: coupon.id, userId } });
+        await (tx as any).couponUsage.create({ data: { couponId: coupon.id, userId } });
       }
 
       if (paymentMethod === "WALLET") {
