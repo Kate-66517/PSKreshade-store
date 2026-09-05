@@ -20,7 +20,7 @@ const ProductSchema = z.object({
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   try {
-    assertAdmin(session);
+    assertAdmin(session as any);
   } catch {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
@@ -34,9 +34,9 @@ export async function POST(req: NextRequest) {
 
   await prisma.auditLog.create({
     data: {
-      actorId: (session!.user as any).id,
+      userId: (session!.user as any).id,
       action: "PRODUCT_CREATE",
-      metadata: { productId: product.id, name: product.name },
+      details: JSON.stringify({ productId: product.id, name: product.name }),
     },
   });
 
@@ -44,10 +44,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  // Admin listing includes UNAVAILABLE/HIDDEN products too, unlike the public API.
   const session = await getServerSession(authOptions);
   try {
-    assertAdmin(session);
+    assertAdmin(session as any);
   } catch {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
