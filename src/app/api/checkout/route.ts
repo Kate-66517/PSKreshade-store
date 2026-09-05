@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
         await tx.order.update({ where: { id: order.id }, data: { status: "PAID" } });
 
         for (const p of products) {
-          await tx.userProduct.create({ data: { userId, productId: p.id, orderId: order.id } });
+          await (tx as any).userProduct.create({ data: { userId, productId: p.id, orderId: order.id } });
           await tx.license.create({
             data: {
               code: generateLicenseCode(),
