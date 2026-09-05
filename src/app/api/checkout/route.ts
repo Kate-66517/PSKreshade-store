@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
         amount: total,
         currency: "THB",
       });
-      await prisma.payment.create({
+      await (prisma as any).payment.create({
         data: {
           orderId: order.id,
           provider: "mock",
