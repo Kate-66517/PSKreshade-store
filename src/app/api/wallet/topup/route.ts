@@ -9,9 +9,6 @@ const TopUpSchema = z.object({
   slipImageUrl: z.string().url().optional(),
 });
 
-// Creating a TopUp request never credits the wallet by itself — spec section
-// 19: "การ Upload Slip ต้องไม่ทำให้ Wallet เพิ่มเงินทันที" (uploading a slip
-// must not add money immediately). Only the admin-approve route touches balance.
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
@@ -23,7 +20,7 @@ export async function POST(req: NextRequest) {
     data: {
       userId: (session.user as any).id,
       amount: parsed.data.amount,
-      slipImageUrl: parsed.data.slipImageUrl,
+      slipUrl: parsed.data.slipImageUrl,
       status: "PENDING",
     },
   });

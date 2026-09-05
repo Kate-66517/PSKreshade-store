@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   const category = searchParams.get("category") ?? undefined;
   const sort = searchParams.get("sort") ?? "newest";
 
-  const products = await (prisma as any).product.findMany({
+  const products = await prisma.product.findMany({
     where: {
       status: "AVAILABLE",
       ...(q
@@ -15,13 +15,13 @@ export async function GET(req: NextRequest) {
             OR: [
               { name: { contains: q, mode: "insensitive" } },
               { description: { contains: q, mode: "insensitive" } },
-              { tags: { has: q } },
+              { features: { has: q } },
             ],
           }
         : {}),
       ...(category ? { category: { slug: category } } : {}),
-    } as any,
-    include: { category: true, features: true },
+    },
+    include: { category: true },
     orderBy:
       sort === "price_asc"
         ? { price: "asc" }
