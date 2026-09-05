@@ -11,7 +11,7 @@ export async function POST(req: NextRequest, { params }: { params: { productId: 
   const productId = params.productId;
 
   // 1. Ownership check — this is the IDOR-prevention boundary (spec section 41).
-  const owned = await prisma.userProduct.findUnique({
+  const owned = await (prisma as any).userProduct.findUnique({
     where: { userId_productId: { userId, productId } },
   });
   if (!owned) {
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: { productId: 
   }
 
   // 2. License must be ACTIVE.
-  const license = await prisma.license.findFirst({
+  const license = await (prisma as any).license.findFirst({
     where: { userId, productId, status: "ACTIVE" },
   });
   if (!license) {
@@ -27,18 +27,18 @@ export async function POST(req: NextRequest, { params }: { params: { productId: 
   }
 
   // 3. Per-product download limit (spec section 11).
-  const product = await prisma.product.findUnique({ where: { id: productId } });
+  const product: any = await prisma.product.findUnique({ where: { id: productId } });
   if (!product) return NextResponse.json({ error: "PRODUCT_NOT_FOUND" }, { status: 404 });
 
   if (product.downloadLimit != null) {
-    const usedCount = await prisma.download.count({ where: { userId, productId } });
+    const usedCount = await (prisma as any).download.count({ where: { userId, productId } });
     if (usedCount >= product.downloadLimit) {
       return NextResponse.json({ error: "DOWNLOAD_LIMIT_REACHED" }, { status: 403 });
     }
   }
 
   // 4. Latest file for the current/newest version.
-  const latestFile = await prisma.productFile.findFirst({
+  const latestFile = await (prisma as any).productFile.findFirst({
     where: { productId },
     orderBy: { createdAt: "desc" },
   });
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest, { params }: { params: { productId: 
   // 6. Log the download attempt immediately (spec section 15/43).
   const ip = req.headers.get("x-forwarded-for") ?? "unknown";
   const userAgent = req.headers.get("user-agent") ?? "unknown";
-  await prisma.download.create({ data: { userId, productId, ip, userAgent } });
+  await (prisma as any).download.create({ data: { userId, productId, ip, userAgent } });
 
   return NextResponse.json({
     url: `/api/downloads/stream?token=${encodeURIComponent(token)}`,
