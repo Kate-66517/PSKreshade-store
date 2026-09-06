@@ -1,31 +1,12 @@
-{
-  "name": "reshade-store",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "prisma generate && next build",
-    "start": "next start",
-    "prisma:seed": "tsx prisma/seed.ts"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
-  "dependencies": {
-    "@prisma/client": "^5.19.1",
-    "next": "14.2.5",
-    "next-auth": "^4.24.7",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "bcryptjs": "^2.4.3",
-    "zod": "^3.23.8"
-  },
-  "devDependencies": {
-    "prisma": "^5.19.1",
-    "typescript": "^5.5.4",
-    "tsx": "^4.16.5",
-    "@types/node": "^20.14.15",
-    "@types/react": "^18.3.3",
-    "@types/bcryptjs": "^2.4.6"
-  }
+"scripts": {
+  "build": "npx prisma generate && next build"
 }
+```[cite: 1]
+
+**2. สั่ง Redeploy แบบล้างแคชบน Vercel**
+* เปิดหน้า Dashboard ของโปรเจกต์คุณบนเว็บไซต์ **Vercel**
+* ไปที่แท็บ **Deployments**
+* คลิกที่ปุ่มจุดสามจุด (`...`) ของ Deployment ล่าสุด แล้วเลือก **Redeploy**
+* **จุดสำคัญ:** ให้ **ติ๊กถูก (Check)** ตรงตัวเลือก **"Clear build cache and redeploy"** เพื่อบังคับให้ระบบดาวน์โหลดและสร้าง Prisma Client ขึ้นมาใหม่ทั้งหมดโดยไม่ใช้ของเดิมที่ค้างอยู่
+
+พุชโค้ดล่าสุดขึ้น GitHub แล้วกด Redeploy แบบเคลียร์แคชตามนี้ รับรองว่า Error นี้จะหายไปและผ่านการคอมไพล์ทันทีครับ ลุยเลย!
