@@ -119,14 +119,12 @@ model Product {
   isBundle         Boolean           @default(false)
   isFree           Boolean           @default(false)
   
-  // ReShade Technical Specifications
   reqReshadeVer    String?
   reqGame          String?           @default("FiveM / GTA V")
   recGpu           String?
   perfLevel        PerfLevel         @default(MEDIUM)
-  features         String[]          // List of key features
+  features         String[]          
   
-  // Relations
   categoryId       String
   category         Category          @relation(fields: [categoryId], references: [id])
   versions         ProductVersion[]
@@ -136,7 +134,6 @@ model Product {
   reviews          Review[]
   downloads        DownloadLog[]
   
-  // Bundle Relationships
   bundleItems      BundleItem[]      @relation("BundleToItems")
   containedIn      BundleItem[]      @relation("ItemToBundle")
 
@@ -158,9 +155,9 @@ model BundleItem {
 model ProductVersion {
   id          String   @id @default(uuid())
   productId   String
-  version     String   // e.g. "v2.0.0"
+  version     String   
   changelog   String   @db.Text
-  filePath    String   // S3 Private Object Key
+  filePath    String   
   isCurrent   Boolean  @default(true)
   createdAt   DateTime @default(now())
 
@@ -181,7 +178,7 @@ model UserProduct {
 
 model License {
   id         String        @id @default(uuid())
-  licenseKey String        @unique // Format: PSK-XXXX-XXXX-XXXX
+  licenseKey String        @unique 
   userId     String
   productId  String
   orderId    String
@@ -272,7 +269,7 @@ model Notification {
   title     String
   message   String
   isRead    Boolean  @default(false)
-  createdAt DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
